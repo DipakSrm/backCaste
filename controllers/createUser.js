@@ -89,7 +89,7 @@ const createUser = asyncHandler(async (req, res) => {
 
     // Respond with success
     return res
-      .status(201)
+      .status(200)
       .json(new ApiResponse(200, user, "User registered successfully"));
   } catch (error) {
     // Clean up local files on error

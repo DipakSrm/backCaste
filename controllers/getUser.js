@@ -16,32 +16,48 @@ const getUsers = asyncHandler(async (req, res) => {
     )
 });
 const getUser = asyncHandler(async (req, res) => {
-  const { identity_no, isMinor } = req.query; // Access query parameters from req.query
+  try {
+    const { identity_no, isMinor } = req.query; // Access query parameters from req.query
 
-  // Check if identity_no or isMinor is missing
-  if (!identity_no || !isMinor) {
-    throw new ApiError(400, "Check identity number or minor status");
-  }
+    // Validate query parameters
+    if (!identity_no || !isMinor) {
+      return res.status(400).json({
+        data: null,
+        message: "Missing required parameters: Identity Number",
+      });
+    }
 
-  // Find the user based on identity_no and isMinor
-  const user = await User.findOne({
-    isMinor: isMinor,
-    identity_no: identity_no,
-  });
+    // Find the user based on identity_no and isMinor
+    const user = await User.findOne({
+      isMinor: isMinor,
+      identity_no: identity_no,
+    });
 
-  // If no user is found, return a 404 response
-  if (!user) {
-    return res.status(404).json({
+    // If no user is found, return a 404 response
+    if (!user) {
+      return res.status(404).json({
+        data: null,
+        message: "No such user found",
+      });
+    }
+
+    // Return the found user with a 200 status code
+    return res.status(200).json({
+      status: 200,
+      data: user,
+      message: "User found successfully",
+    });
+  } catch (error) {
+    console.error("Error in getUser:", error); // Log the error for debugging
+
+    // Return a 500 status for server errors
+    return res.status(500).json({
       data: null,
-      message: "No such user found",
+      message: "Internal Server Error",
     });
   }
-
-  // Return the found user with a 200 status code
-  return res
-    .status(200)
-    .json(new ApiResponse(200, user, "User found successfully"));
 });
+
 
 
 export {getUsers,getUser}
