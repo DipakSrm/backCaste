@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { upload } from "../middlewares.js/multer.middleware.js";
-import { createUser } from "../controllers/createUser.js";
+import { createUser,updateUser } from "../controllers/createUser.js";
 import { getUser } from "../controllers/getUser.js";
 const router=Router()
 router.route('/createUser').post(upload.fields([
@@ -15,4 +15,5 @@ router.route('/createUser').post(upload.fields([
         maxCount:1
     }
 ]),createUser)
+router.route('/updateUser/:userId').put(updateUser)
 export default router

@@ -99,5 +99,33 @@ const createUser = asyncHandler(async (req, res) => {
     throw error;
   }
 });
+const updateUser = asyncHandler(async (req, res) => {
+  const { userId } = req.params; // Extract userId from the route
+  const updates = req.body; // Extract fields to update from the request body
+console.log("updates",updates)
+  try {
+    if (!userId) {
+      throw new Error("User ID is required");
+    }
 
-export { createUser};
+    // Find user by ID and update
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $set: updates }, // Dynamically apply updates
+      { new: true } // Return the updated document
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({
+      message: "User updated successfully",
+      data: updatedUser,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+export { createUser,updateUser};
