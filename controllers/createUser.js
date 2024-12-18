@@ -42,7 +42,9 @@ const createUser = asyncHandler(async (req, res) => {
         (field) => typeof field === "string" && field.trim() === ""
       )
     ) {
-      throw new ApiError(400, "All fields are required");
+      return res
+        .status(404)
+        .json({ message: "All fields required", data: [] });
     }
 
     // Validation: Check for duplicate user
@@ -51,7 +53,9 @@ const createUser = asyncHandler(async (req, res) => {
       identity_no:identity_no
      });
     if (existedUser) {
-      throw new ApiError(409, "User with the same identity number exists");
+      return res.status(409).json(
+       { message:"User with same identity exist",data:[]}
+      )
     }
 
     // Validation: Check required files
