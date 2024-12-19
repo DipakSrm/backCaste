@@ -1,19 +1,10 @@
-import mongoose from "mongoose";
-import fs from "fs";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHanlder.js";
-import Cloudinary from "../utils/cloudinary.js";
+import {uploadToCloudinary} from "../utils/cloudinary.js";
 import User from "../models/User.model.js";
 
 // Helper function to clean up files
-const cleanUpFiles = (filePaths) => {
-  filePaths.filter(Boolean).forEach((filePath) => {
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
-  });
-};
 
 const createUser = asyncHandler(async (req, res) => {
   const {
@@ -24,21 +15,26 @@ const createUser = asyncHandler(async (req, res) => {
     fatherId,
     grandfatherId,
     gender,
-    address,
     caste_no,
     isMinor,
   } = req.body;
-
+ const address = {
+   province: req.body["address[province]"],
+   district: req.body["address[district]"],
+   municipality: req.body["address[municipality]"],
+ };
+if(!address){
+    return res.status(404).json({ message: "Address is required", data: [] });
+}
   // Collect file paths for cleanup later
-  const avatarLocal = req.files?.avatar?.[0]?.path;
-  const frontLocal = req.files?.front?.[0]?.path;
-  const backLocal = req.files?.back?.[0]?.path || null;
-  const filePaths = [avatarLocal, frontLocal, backLocal];
+  const avatarLocal = req.files?.avatar?.data;
+  const frontLocal = req.files?.front?.data;
+  const backLocal = req.files?.back?.data || null;
 
   try {
     // Validation: Check required fields
     if (
-      [name, DOB, address, caste_no, identity_no, email].some(
+      [name, DOB, caste_no, identity_no, email].some(
         (field) => typeof field === "string" && field.trim() === ""
       )
     ) {
@@ -64,12 +60,12 @@ const createUser = asyncHandler(async (req, res) => {
     }
 
     // Upload files to Cloudinary
-    const avatar = await Cloudinary(avatarLocal,"avatar");
-    const front = await Cloudinary(frontLocal,"front");
-    const back = backLocal ? await Cloudinary(backLocal,"back") : null;
+    const avatar = await uploadToCloudinary(avatarLocal,"caste/avatar");
+    const front = await uploadToCloudinary(frontLocal,'caste/front');
+    const back = backLocal ? await uploadToCloudinary(backLocal,'caste/back') : null;
 
     if (!avatar || !front) {
-      throw new ApiError(500, "Error uploading files to Cloudinary");
+      throw new ApiError(500, "Error uploading files to uploadToCloudinary");
     }
 
     // Create user in database
@@ -97,7 +93,6 @@ const createUser = asyncHandler(async (req, res) => {
       .json(new ApiResponse(200, user, "User registered successfully"));
   } catch (error) {
     // Clean up local files on error
-    cleanUpFiles(filePaths);
 
     // Re-throw the error for centralized error handling
     throw error;

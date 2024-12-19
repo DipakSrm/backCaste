@@ -4,7 +4,7 @@ import cors from "cors";
 import createUser from "./routes/createUser.route.js";
 import  getUser  from "./routes/getUser.route.js";
 import connectDB from "./db.js";
-
+import fileUpload from "express-fileupload";
 
 // Initialize app and configure environment
 dotenv.config();
@@ -14,7 +14,7 @@ const PORT = process.env.PORT || 8000;
 // Middleware
 app.use(cors());
 app.use(express.json()); // To parse JSON requests
-
+app.use(fileUpload());
 // Basic test route
 app.get("/", (req, res) => {
     console.log("Server hit")
