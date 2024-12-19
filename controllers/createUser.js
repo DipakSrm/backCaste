@@ -4,7 +4,12 @@ import { asyncHandler } from "../utils/asyncHanlder.js";
 import {uploadToCloudinary} from "../utils/cloudinary.js";
 import User from "../models/User.model.js";
 
-// Helper function to clean up files
+// Helper function check size
+const checkSize = (item) => {
+  if (!item) return false; // Return false if the item is null or undefined
+  const size_in_kb = item.length / 1024;
+  return size_in_kb <= 400; // Return true if size <= 400 KB
+};
 
 const createUser = asyncHandler(async (req, res) => {
   const {
@@ -18,18 +23,62 @@ const createUser = asyncHandler(async (req, res) => {
     caste_no,
     isMinor,
   } = req.body;
- const address = {
-   province: req.body["address[province]"],
-   district: req.body["address[district]"],
-   municipality: req.body["address[municipality]"],
- };
-if(!address){
-    return res.status(404).json({ message: "Address is required", data: [] });
-}
-  // Collect file paths for cleanup later
+
+  const address = {
+    province: req.body["address[province]"],
+    district: req.body["address[district]"],
+    municipality: req.body["address[municipality]"],
+  };
+
+  // Validate address
+  if (!address.district || !address.municipality || !address.province) {
+    return res.status(404).json({
+      message: "Address (province, district, municipality) is required",
+      data: [],
+    });
+  }
+
+  // Collect file data
   const avatarLocal = req.files?.avatar?.data;
   const frontLocal = req.files?.front?.data;
   const backLocal = req.files?.back?.data || null;
+
+  // Validate files and sizes based on isMinor
+  if (isMinor) {
+    // Validation for minors (no backLocal required)
+    if (!avatarLocal || !frontLocal) {
+      return res.status(404).json({
+        message:
+          "Profile Picture and front identity image are required for minors",
+        data: [],
+      });
+    }
+    if (!checkSize(avatarLocal) || !checkSize(frontLocal)) {
+      return res.status(404).json({
+        message: "Image size should be less than 400 KB",
+        data: [],
+      });
+    }
+  } else {
+    // Validation for non-minors (backLocal required)
+    if (!avatarLocal || !frontLocal || !backLocal) {
+      return res.status(404).json({
+        message:
+          "Profile Picture, front, and back identity images are required",
+        data: [],
+      });
+    }
+    if (
+      !checkSize(avatarLocal) ||
+      !checkSize(frontLocal) ||
+      !checkSize(backLocal)
+    ) {
+      return res.status(404).json({
+        message: "Image size should be less than 400 KB",
+        data: [],
+      });
+    }
+  }
 
   try {
     // Validation: Check required fields
@@ -38,37 +87,36 @@ if(!address){
         (field) => typeof field === "string" && field.trim() === ""
       )
     ) {
-      return res
-        .status(404)
-        .json({ message: "All fields required", data: [] });
+      return res.status(404).json({
+        message: "All fields are required",
+        data: [],
+      });
     }
 
     // Validation: Check for duplicate user
-    const existedUser = await User.findOne({ 
-      isMinor:isMinor,
-      identity_no:identity_no
-     });
+    const existedUser = await User.findOne({
+      isMinor: isMinor,
+      identity_no: identity_no,
+    });
     if (existedUser) {
-      return res.status(409).json(
-       { message:"User with same identity exist",data:[]}
-      )
-    }
-
-    // Validation: Check required files
-    if (!avatarLocal || !frontLocal) {
-      throw new ApiError(400, "Avatar and Front Identity files are required");
+      return res.status(409).json({
+        message: "User with the same identity number already exists",
+        data: [],
+      });
     }
 
     // Upload files to Cloudinary
-    const avatar = await uploadToCloudinary(avatarLocal,"caste/avatar");
-    const front = await uploadToCloudinary(frontLocal,'caste/front');
-    const back = backLocal ? await uploadToCloudinary(backLocal,'caste/back') : null;
+    const avatar = await uploadToCloudinary(avatarLocal, "caste/avatar");
+    const front = await uploadToCloudinary(frontLocal, "caste/front");
+    const back = backLocal
+      ? await uploadToCloudinary(backLocal, "caste/back")
+      : null;
 
     if (!avatar || !front) {
-      throw new ApiError(500, "Error uploading files to uploadToCloudinary");
+      throw new ApiError(500, "Error uploading files to Cloudinary");
     }
 
-    // Create user in database
+    // Create user in the database
     const user = await User.create({
       name,
       email,
@@ -92,10 +140,8 @@ if(!address){
       .status(200)
       .json(new ApiResponse(200, user, "User registered successfully"));
   } catch (error) {
-    // Clean up local files on error
-
-    // Re-throw the error for centralized error handling
-    throw error;
+    // Handle any unexpected errors
+    throw error; // Re-throw the error for centralized error handling
   }
 });
 const updateUser = asyncHandler(async (req, res) => {
