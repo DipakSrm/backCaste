@@ -64,9 +64,9 @@ const createUser = asyncHandler(async (req, res) => {
     }
 
     // Upload files to Cloudinary
-    const avatar = await Cloudinary(avatarLocal);
-    const front = await Cloudinary(frontLocal);
-    const back = backLocal ? await Cloudinary(backLocal) : null;
+    const avatar = await Cloudinary(avatarLocal,"avatar");
+    const front = await Cloudinary(frontLocal,"front");
+    const back = backLocal ? await Cloudinary(backLocal,"back") : null;
 
     if (!avatar || !front) {
       throw new ApiError(500, "Error uploading files to Cloudinary");

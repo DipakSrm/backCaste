@@ -2,7 +2,7 @@ import {v2 as cloudinary} from 'cloudinary'
 import fs from 'fs'
 
   
-const Cloudinary=async(localfile)=>{
+const Cloudinary=async(localfile,folderName)=>{
  cloudinary.config({
    cloud_name: `${process.env.CLOUD_NAME}`,
    api_key: `${process.env.API_KEY}`,
@@ -12,7 +12,7 @@ const Cloudinary=async(localfile)=>{
     if(!localfile) return null
     const uploadResult=await cloudinary.uploader.upload(localfile,{
         resource_type:"auto",
-        folder:'Caste'
+        folder:`Caste/${folderName}`
     })
     fs.unlinkSync(localfile);
     return uploadResult.secure_url
