@@ -5,7 +5,7 @@ import createUser from "./routes/createUser.route.js";
 import  getUser  from "./routes/getUser.route.js";
 import connectDB from "./db.js";
 import fileUpload from "express-fileupload";
-
+import getFamily from "./routes/getFamily.route.js"
 // Initialize app and configure environment
 dotenv.config();
 const app = express();
@@ -35,3 +35,5 @@ connectDB()
 // Add API routes
 app.use("/api/v1", createUser);
 app.use("/api/v1", getUser);
+app.use("/api/v1", getFamily);
+
