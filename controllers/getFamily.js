@@ -3,40 +3,47 @@ import { asyncHandler } from "../utils/asyncHanlder.js";
 
 async function generateFamilyTreeData(userId) {
   try {
-    // Get the initial user
+    // Helper function to format node data for react-d3-tree
+    const formatNodeData = (user) => ({
+      name: user.name,
+      attributes: {
+        DOB: user.DOB,
+        address: user.address,
+        casteNo: user.caste_no,
+      },
+      avatar: user.avatar, // Will be used for custom node rendering
+    });
+
     const user = await User.findById(userId);
     if (!user) {
       return {
         message: "User not found",
-        data: [],
+        data: null,
       };
     }
 
-    // Get grandfather
     const grandfatherId = user.grandfatherId;
     if (!grandfatherId) {
       return {
         message: "Grandfather not found",
-        data: [],
+        data: null,
       };
     }
 
-    // Start building tree from grandfather
     const grandfather = await User.findById(grandfatherId);
     if (!grandfather) {
       return {
         message: "Grandfather details not found",
-        data: [],
+        data: null,
       };
     }
 
-    // Initialize tree structure
+    // Initialize tree structure compatible with react-d3-tree
     const familyTree = {
-      id: grandfather._id,
+      ...formatNodeData(grandfather),
       children: [],
     };
 
-    // Find all children of grandfather (fathers)
     const fathers = await User.find({ fatherId: grandfather._id });
     if (!fathers || fathers.length === 0) {
       return {
@@ -45,31 +52,26 @@ async function generateFamilyTreeData(userId) {
       };
     }
 
-    // For each father, find their children
+    // Build the tree structure
     for (const father of fathers) {
       const fatherNode = {
-        id: father._id,
+        ...formatNodeData(father),
         children: [],
       };
 
-      // Find children of current father
       const children = await User.find({ fatherId: father._id });
 
-      // Add children to father's node
       for (const child of children) {
         const childNode = {
-          id: child._id,
+          ...formatNodeData(child),
           children: [],
         };
 
-        // Find children of current child (grandchildren)
         const grandChildren = await User.find({ fatherId: child._id });
 
-        // Add grandchildren to child's node if they exist
         if (grandChildren && grandChildren.length > 0) {
           childNode.children = grandChildren.map((grandChild) => ({
-            id: grandChild._id,
-            children: null,
+            ...formatNodeData(grandChild),
           }));
         }
 
@@ -87,7 +89,7 @@ async function generateFamilyTreeData(userId) {
     console.log(error);
     return {
       message: "Error generating family tree",
-      data: [],
+      data: null,
       error: error.message,
     };
   }
